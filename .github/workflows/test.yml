@@ -10,10 +10,10 @@ jobs:
   build:
     name: ${{ matrix.os }} @ Go ${{ matrix.go }}
     strategy:
-        fail-fast: false
-        matrix:
-            os: [ubuntu-latest, macos-latest, windows-latest]
-            go: ['1.23.x', '1.24.x']
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go: ['1.23.x', '1.24.x']
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v4
@@ -28,10 +28,23 @@ jobs:
       with:
         node-version: '20'
 
+    # Ensure Vue example project is initialized (if needed)
+    - name: Initialize Vue example project (if script exists)
+      run: |
+        if [ -f example/init-vue-example.sh ]; then
+          cd example
+          chmod +x init-vue-example.sh
+          ./init-vue-example.sh
+        fi
+      shell: bash
+
     - name: Install npm dependencies for Vue example
       run: |
         cd example/vue-example
         npm install
+
+    - name: List example/vue-example contents for debug
+      run: ls -alR example/vue-example
 
     - name: Build
       run: go build -v ./...
