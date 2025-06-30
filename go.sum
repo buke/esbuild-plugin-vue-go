@@ -4,10 +4,10 @@ github.com/antchfx/htmlquery v1.3.4 h1:Isd0srPkni2iNTWCwVj/72t7uCphFeor5Q8nCzj1j
 github.com/antchfx/htmlquery v1.3.4/go.mod h1:K9os0BwIEmLAvTqaNSua8tXLWRWZpocZIH73OzWQbwM=
 github.com/antchfx/xpath v1.3.3 h1:tmuPQa1Uye0Ym1Zn65vxPgfltWb/Lxu2jeqIGteJSRs=
 github.com/antchfx/xpath v1.3.3/go.mod h1:i54GszH55fYfBmoZXapTHN8T8tkcHfRgLyVwwqzXNcs=
-github.com/buke/js-executor v0.1.1 h1:7pCRvEBQk9rmGCVddOPAAm/GUMyB5lFYpCqI6YHsTLQ=
-github.com/buke/js-executor v0.1.1/go.mod h1:vPSLhdriEEJNjQclgyCFtodFi1i53duiRZi7s2v9eRM=
-github.com/buke/quickjs-go v0.5.13 h1:9CjSK3yCT8wvLCdS1srp0KmQvwMCpjizEFhlSJTJYDs=
-github.com/buke/quickjs-go v0.5.13/go.mod h1:6G3NDbTo6+2xwPU8B+LG0CM5DtqbPZhN8GEc7d4wIko=
+github.com/buke/js-executor v0.1.2 h1:dcPgz/E0hUjyQYNc1ns7uqQkg8lMPs204WpmuNd5Y8k=
+github.com/buke/js-executor v0.1.2/go.mod h1:gM22HwV9Ect6nWpGo/o+F5VqRBcMBF0/Nd3xrcoxMlM=
+github.com/buke/quickjs-go v0.5.14 h1:YOFHEBOM/LIPy2f7uUvSM31uxYAtJhnD6dcULAIfVJg=
+github.com/buke/quickjs-go v0.5.14/go.mod h1:6G3NDbTo6+2xwPU8B+LG0CM5DtqbPZhN8GEc7d4wIko=
 github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=

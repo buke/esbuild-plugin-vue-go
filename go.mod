@@ -4,8 +4,8 @@ go 1.24.2
 
 require (
 	github.com/antchfx/htmlquery v1.3.4
-	github.com/buke/js-executor v0.1.1
-	github.com/buke/quickjs-go v0.5.13
+	github.com/buke/js-executor v0.1.2
+	github.com/buke/quickjs-go v0.5.14
 	github.com/cespare/xxhash v1.1.0
 	github.com/evanw/esbuild v0.25.5
 	github.com/rs/xid v1.6.0
