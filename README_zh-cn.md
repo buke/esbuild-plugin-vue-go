@@ -1,6 +1,11 @@
 # esbuild-plugin-vue-go
 [English](README.md) | 简体中文
 
+[![Test](https://github.com/buke/esbuild-plugin-vue-go/workflows/Test/badge.svg)](https://github.com/buke/esbuild-plugin-vue-go/actions?query=workflow%3ATest)
+[![codecov](https://codecov.io/gh/buke/esbuild-plugin-vue-go/graph/badge.svg?token=sCKbIlGJE3)](https://codecov.io/gh/buke/esbuild-plugin-vue-go)
+[![Go Report Card](https://goreportcard.com/badge/github.com/buke/esbuild-plugin-vue-go)](https://goreportcard.com/report/github.com/buke/esbuild-plugin-vue-go)
+[![GoDoc](https://pkg.go.dev/badge/github.com/buke/esbuild-plugin-vue-go?status.svg)](https://pkg.go.dev/github.com/buke/esbuild-plugin-vue-go?tab=doc)
+
 一个纯 Golang 的 esbuild 插件，用于解析和加载 Vue3 单文件组件（SFC），无需 Node.js 依赖。
 
 本项目受到 [pipe01/esbuild-plugin-vue3](https://github.com/pipe01/esbuild-plugin-vue3) 启发。

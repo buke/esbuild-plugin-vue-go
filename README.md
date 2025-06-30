@@ -1,6 +1,11 @@
 # esbuild-plugin-vue-go
 English | [简体中文](README_zh-cn.md)
 
+[![Test](https://github.com/buke/esbuild-plugin-vue-go/workflows/Test/badge.svg)](https://github.com/buke/esbuild-plugin-vue-go/actions?query=workflow%3ATest)
+[![codecov](https://codecov.io/gh/buke/esbuild-plugin-vue-go/graph/badge.svg?token=sCKbIlGJE3)](https://codecov.io/gh/buke/esbuild-plugin-vue-go)
+[![Go Report Card](https://goreportcard.com/badge/github.com/buke/esbuild-plugin-vue-go)](https://goreportcard.com/report/github.com/buke/esbuild-plugin-vue-go)
+[![GoDoc](https://pkg.go.dev/badge/github.com/buke/esbuild-plugin-vue-go?status.svg)](https://pkg.go.dev/github.com/buke/esbuild-plugin-vue-go?tab=doc)
+
 A pure Golang esbuild plugin for resolving and loading Vue3 single-file components (SFC), with no Node.js dependency.
 
 This project is inspired by [pipe01/esbuild-plugin-vue3](https://github.com/pipe01/esbuild-plugin-vue3).
