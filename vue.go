@@ -76,7 +76,7 @@ func registerMainEntryHandler(opts *options, build *api.PluginBuild) {
 			Service: "sfc.vue.compileSFC",
 			Args: []interface{}{
 				hashId,
-				args.Path,
+				toPosixPath(args.Path),
 				source,
 				map[string]interface{}{
 					"sourceMap":         build.InitialOptions.Sourcemap > 0,
