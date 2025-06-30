@@ -1,18 +1,22 @@
 #!/bin/sh
-# 自动初始化 Vue3+TypeScript+Router+Pinia+Sass 项目
+# Automatically initialize a Vue 3 + TypeScript + Router + Pinia + Sass project
 
 set -e
 
+# Remove any existing vue-example directory
 rm -rf vue-example
+
+# Create a new Vue project with TypeScript, Router, Pinia, and default settings
 npx -y create-vue vue-example --ts --router --pinia --default
 cd vue-example || exit 1
+
+# Install all npm dependencies
 npm install
-npm install -D sass
 
-
+# Create the styles directory if it does not exist
 mkdir -p src/styles
 
-# 生成/覆盖 src/styles/variables.scss
+# Generate or overwrite src/styles/variables.scss with some base variables
 cat > src/styles/variables.scss <<'EOF'
 $primary-color: #42b983;
 $secondary-color: #35495e;
@@ -21,7 +25,7 @@ $border-radius-base: 6px;
 $padding-base: 1rem;
 EOF
 
-# 生成/覆盖 src/styles/index.scss
+# Generate or overwrite src/styles/index.scss with some global styles
 cat > src/styles/index.scss <<'EOF'
 @import './variables.scss';
 
@@ -44,15 +48,15 @@ a:hover {
 }
 EOF
 
-# 如果 main.ts 没有引入 index.scss，则插入
+# If main.ts does not import index.scss, insert the import after the first import statement
 if ! grep -q "import './styles/index.scss'" src/main.ts; then
-  # 在第一个 import 之后插入
+  # Insert after the first import
   sed -i '' "1a\\
 import './styles/index.scss';
 " src/main.ts
 fi
 
-# 如果 HelloWorld.vue 没有 <style lang="scss" scoped>，则插入
+# If HelloWorld.vue does not contain <style lang="scss" scoped>, append a style block
 if ! grep -q "<style lang=\"scss\" scoped>" src/components/HelloWorld.vue; then
   cat <<'EOF' >> src/components/HelloWorld.vue
 
