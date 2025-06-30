@@ -21,6 +21,11 @@ import (
 	"github.com/rs/xid"
 )
 
+// toPosixPath converts Windows-style paths to POSIX-style paths.
+func toPosixPath(path string) string {
+	return strings.ReplaceAll(path, "\\", "/")
+}
+
 // setupVueHandler registers all handlers for Vue files (.vue).
 func setupVueHandler(opts *options, build *api.PluginBuild) {
 	// Register main entry handler for .vue files
@@ -71,7 +76,7 @@ func registerMainEntryHandler(opts *options, build *api.PluginBuild) {
 			Service: "sfc.vue.compileSFC",
 			Args: []interface{}{
 				hashId,
-				args.Path,
+				toPosixPath(args.Path),
 				source,
 				map[string]interface{}{
 					"sourceMap":         build.InitialOptions.Sourcemap > 0,
@@ -205,6 +210,13 @@ func generateEntryContents(filePath, dataId string, isSSR bool,
 	sfcScript map[string]interface{}, sfcTemplate map[string]interface{},
 	sfcStyles []map[string]interface{}) (string, error) {
 
+	// Convert filePath to relative POSIX path for import statements
+	relPath, err := filepath.Rel(".", filePath)
+	if err != nil {
+		relPath = filePath
+	}
+	relPath = toPosixPath(relPath)
+
 	tpl, err := template.New(filePath).Funcs(template.FuncMap{
 		"SSR": func() bool {
 			return isSSR
@@ -228,21 +240,21 @@ func generateEntryContents(filePath, dataId string, isSSR bool,
 		},
 	}).Parse(`
 {{ if hasScript }}
-import script from '{{ .filename }}?type=script'
+import script from '{{ .relPath }}?type=script'
 {{ else }}
 const script = {};
 {{ end }}
 
 {{ range $index, $_ := .styles }}
-import '{{ $.filename }}?type=style&index={{ $index }}'
+import '{{ $.relPath }}?type=style&index={{ $index }}'
 {{ end }}
 
 {{ if hasTemplate }}
-import { {{ if SSR }}ssrRender{{ else }}render{{ end }} } from '{{ .filename }}?type=template'
+import { {{ if SSR }}ssrRender{{ else }}render{{ end }} } from '{{ .relPath }}?type=template'
 script.{{ if SSR }}ssrRender{{ else }}render{{ end }} = {{ if SSR }}ssrRender{{ else }}render{{ end }};
 {{ end }}
 
-script.__file = {{ .filename | printf "%q" }};
+script.__file = {{ .relPath | printf "%q" }};
 {{ if someScoped }}
 script.__scopeId = {{ printf "%q" (dataId) }};{{ end }}
 {{ if SSR }}
@@ -250,7 +262,7 @@ script.__ssrInlineRender = true;
 {{ end }}
 
 {{ if hasScript }}
-export * from '{{ .filename }}?type=script'
+export * from '{{ .relPath }}?type=script'
 {{ end }}
 export default script;
 `)
@@ -259,8 +271,8 @@ export default script;
 	}
 
 	data := map[string]interface{}{
-		"filename": filePath,
-		"styles":   sfcStyles,
+		"relPath": relPath,
+		"styles":  sfcStyles,
 	}
 
 	contentsBuf := new(bytes.Buffer)
