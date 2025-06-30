@@ -39,7 +39,7 @@ h3 {
   }
 }
 </style>
-<!-- 
+
 <style lang="scss" scoped>
 @import '../styles/variables.scss';
 
@@ -66,4 +66,4 @@ h3 {
     }
   }
 }
-</style> -->
+</style>

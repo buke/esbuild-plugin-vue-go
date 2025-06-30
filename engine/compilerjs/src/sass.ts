@@ -14,6 +14,10 @@ import { URL } from './url';
 
 let sasslocation: string | undefined;
 
+function toPosixPath(path: string): string {
+  return path.replace(/\\/g, '/');
+}
+
 function getPossibleFilenames(path: string) {
   const dir = dirname(path);
   const base = basename(path);
@@ -57,6 +61,7 @@ function loadContent(path: string): string {
 
 const sassImporter = {
   canonicalize(urlString: string, context: CanonicalizeContext): URL | null {
+    urlString = toPosixPath(urlString);
     if (!urlString.startsWith('file://')) {
       const location = sasslocation;
       if (!isAbsolute(urlString)) {
@@ -87,7 +92,7 @@ const sassImporter = {
 
 export function renderSync(options: any): LegacyResult {
   try {
-    sasslocation = options.sasslocation;
+    sasslocation = toPosixPath(options.sasslocation);
     const source: string = options.data;
     const sourceMap: boolean = options.sourceMap || false;
     const style: 'expanded' | 'compressed' = options.style || 'compressed';
