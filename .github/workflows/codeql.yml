@@ -14,8 +14,12 @@ name: "CodeQL Advanced"
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - engine/compilerjs/dist/index.js
   pull_request:
     branches: [ "main" ]
+    paths-ignore:
+      - engine/compilerjs/dist/index.js
   schedule:
     - cron: '32 2 * * 2'
 
