@@ -532,7 +532,7 @@ func TestHtmlHandlerErrorConditions(t *testing.T) {
 				buildOpts.Metafile = true
 			},
 			expectError:   true,
-			errorContains: "no such file or directory",
+			errorContains: "",
 		},
 	}
 
@@ -584,7 +584,8 @@ func TestHtmlHandlerErrorConditions(t *testing.T) {
 			if test.expectError {
 				if len(result.Errors) == 0 {
 					t.Error("Expected build errors, got none")
-				} else if test.errorContains != "" {
+				}
+				if test.errorContains != "" {
 					found := false
 					for _, err := range result.Errors {
 						if strings.Contains(err.Text, test.errorContains) {

@@ -6,6 +6,7 @@ package vueplugin
 import (
 	"log/slog"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -275,17 +276,32 @@ func TestWithIndexHtmlOptionsAndProcessors(t *testing.T) {
 // TestSimpleCopyMkdirAllFail checks SimpleCopy when MkdirAll fails.
 func TestSimpleCopyMkdirAllFail(t *testing.T) {
 	srcFile := "test_source.txt"
-	dstFile := "/dev/null/foo.txt" // On Unix, /dev/null is not a directory
+	var dstFile string
+
+	// Use different invalid paths for different operating systems
+	switch runtime.GOOS {
+	case "windows":
+		// On Windows, use reserved device name or invalid characters
+		dstFile = "CON/foo.txt" // CON is a reserved device name on Windows
+	default:
+		// On Unix-like systems, use /dev/null as a file instead of directory
+		dstFile = "/dev/null/foo.txt"
+	}
+
 	err := os.WriteFile(srcFile, []byte("x"), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create source file: %v", err)
 	}
 	defer os.Remove(srcFile)
+
 	copyProcessor := SimpleCopy(map[string]string{
 		srcFile: dstFile,
 	})
 	err = copyProcessor(&api.BuildResult{}, &api.BuildOptions{})
-	if err == nil || !strings.Contains(err.Error(), "failed to create output dir") {
+	if err == nil {
+		t.Error("Expected directory creation error, got none")
+	}
+	if !strings.Contains(err.Error(), "failed to create output dir") {
 		t.Errorf("Expected directory creation error, got: %v", err)
 	}
 }
