@@ -107,7 +107,7 @@ func TestWithOnEndProcessor(t *testing.T) {
 // TestWithOnDisposeProcessor verifies that WithOnDisposeProcessor adds a processor.
 func TestWithOnDisposeProcessor(t *testing.T) {
 	opts := newOptions()
-	processor := func(buildOptions *api.BuildOptions) error { return nil }
+	processor := func(buildOptions *api.BuildOptions) {}
 	WithOnDisposeProcessor(processor)(opts)
 	if len(opts.onDisposeProcessors) != 1 {
 		t.Errorf("Expected 1 dispose processor, got %d", len(opts.onDisposeProcessors))

@@ -108,7 +108,7 @@ func TestNewPlugin(t *testing.T) {
 			WithStylePreprocessorOptions(map[string]any{"sass": "compressed"}),
 			WithOnStartProcessor(func(*api.BuildOptions) error { return nil }),
 			WithOnEndProcessor(func(*api.BuildResult, *api.BuildOptions) error { return nil }),
-			WithOnDisposeProcessor(func(*api.BuildOptions) error { return nil }),
+			WithOnDisposeProcessor(func(*api.BuildOptions) {}),
 		)
 
 		if plugin.Name != "test-plugin" {
@@ -215,11 +215,11 @@ func TestProcessorSuccess(t *testing.T) {
 
 	t.Run("dispose_processor_registration", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		disposeProcessor := func(buildOptions *api.BuildOptions) error {
+		disposeProcessor := func(buildOptions *api.BuildOptions) {
 			if buildOptions == nil {
-				return fmt.Errorf("expected non-nil build options")
+				return
 			}
-			return nil
+			return
 		}
 
 		result := buildWithTestPlugin(t, tmpDir, WithOnDisposeProcessor(disposeProcessor))

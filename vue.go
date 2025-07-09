@@ -21,12 +21,14 @@ import (
 	"github.com/rs/xid"
 )
 
-// toPosixPath converts Windows-style paths to POSIX-style paths.
+// toPosixPath converts Windows-style paths to POSIX-style paths by replacing backslashes with forward slashes.
+// This ensures consistent path handling across different operating systems.
 func toPosixPath(path string) string {
 	return strings.ReplaceAll(path, "\\", "/")
 }
 
-// setupVueHandler registers all handlers for Vue files (.vue).
+// setupVueHandler registers all handlers for Vue Single File Components (.vue files).
+// It sets up the complete processing pipeline including main entry, resolve, script, template, and style handlers.
 func setupVueHandler(opts *options, build *api.PluginBuild) {
 	// Register main entry handler for .vue files
 	registerMainEntryHandler(opts, build)
@@ -41,7 +43,10 @@ func setupVueHandler(opts *options, build *api.PluginBuild) {
 }
 
 // registerMainEntryHandler processes .vue files and precompiles all SFC parts.
+// This is the main entry point that orchestrates the compilation of Vue Single File Components.
+// It reads the source, compiles it using the JS executor, and generates the final entry code.
 func registerMainEntryHandler(opts *options, build *api.PluginBuild) {
+	// Determine production mode from build environment
 	isProd := true
 	if v, exists := parseImportMetaEnv(build.InitialOptions.Define, "PROD"); exists {
 		_v, ok := v.(bool)
@@ -50,6 +55,7 @@ func registerMainEntryHandler(opts *options, build *api.PluginBuild) {
 		}
 	}
 
+	// Determine SSR mode from build environment
 	isSSR := false
 	if v, exists := parseImportMetaEnv(build.InitialOptions.Define, "SSR"); exists {
 		_v, ok := v.(bool)
@@ -59,18 +65,18 @@ func registerMainEntryHandler(opts *options, build *api.PluginBuild) {
 	}
 
 	build.OnLoad(api.OnLoadOptions{Filter: `\.vue$`}, func(args api.OnLoadArgs) (api.OnLoadResult, error) {
-		// 1. Read the source file content
+		// Step 1: Read and preprocess the Vue source file
 		source, err := readVueSource(args, opts, build)
 		if err != nil {
 			opts.logger.Error("Failed to read Vue file", "error", err, "file", args.Path)
 			return api.OnLoadResult{}, err
 		}
 
-		// 2. Generate component ID
+		// Step 2: Generate unique component ID based on source content
 		hashId := generateHashId(source)
 		dataId := "data-v-" + hashId
 
-		// 3. Compile SFC using the JS executor
+		// Step 3: Compile SFC using the JavaScript executor
 		jsResponse, err := opts.jsExecutor.Execute(&jsexecutor.JsRequest{
 			Id:      xid.New().String(),
 			Service: "sfc.vue.compileSFC",
@@ -99,6 +105,7 @@ func registerMainEntryHandler(opts *options, build *api.PluginBuild) {
 			}, err
 		}
 
+		// Validate compilation result format
 		compileResult, ok := jsResponse.Result.(map[string]interface{})
 		if !ok {
 			opts.logger.Error("Invalid Vue SFC compilation result", "result", jsResponse.Result, "file", args.Path)
@@ -112,7 +119,7 @@ func registerMainEntryHandler(opts *options, build *api.PluginBuild) {
 			}, err
 		}
 
-		// 4. Extract each part from the compilation result
+		// Step 4: Extract each SFC part from the compilation result
 		var script map[string]interface{}
 		scriptResult, ok := compileResult["script"]
 		if scriptResult != nil && ok {
@@ -134,7 +141,7 @@ func registerMainEntryHandler(opts *options, build *api.PluginBuild) {
 			}
 		}
 
-		// 5. Generate entry content - use compilation result directly, no need for descriptors
+		// Step 5: Generate entry JavaScript code that imports and combines all SFC parts
 		contents, err := generateEntryContents(args.Path, dataId, isSSR, script, template, styles)
 		if err != nil {
 			opts.logger.Error("Failed to generate Vue entry contents", "error", err, "file", args.Path)
@@ -148,7 +155,7 @@ func registerMainEntryHandler(opts *options, build *api.PluginBuild) {
 			}, err
 		}
 
-		// 6. Prepare plugin data
+		// Step 6: Prepare plugin data for subsequent handlers
 		pluginData := map[string]interface{}{
 			"id":     dataId,
 			"script": script,
@@ -162,7 +169,7 @@ func registerMainEntryHandler(opts *options, build *api.PluginBuild) {
 			pluginData["styles"] = styles
 		}
 
-		// 7. Extract script warnings
+		// Step 7: Extract script warnings and convert them to build warnings
 		buildWarnings := make([]api.Message, 0)
 		if warnings, ok := script["warnings"].([]interface{}); ok {
 			for _, w := range warnings {
@@ -182,17 +189,19 @@ func registerMainEntryHandler(opts *options, build *api.PluginBuild) {
 }
 
 // readVueSource reads and preprocesses the Vue source file.
-// It also executes the Vue load processor chain if present.
+// It normalizes line endings and executes any registered Vue load processor chain.
 func readVueSource(args api.OnLoadArgs, opts *options, build *api.PluginBuild) (string, error) {
+	// Read file contents
 	fbyte, err := os.ReadFile(args.Path)
 	if err != nil {
 		return "", err
 	}
 
+	// Normalize line endings to Unix-style
 	source := string(fbyte)
 	source = strings.ReplaceAll(source, "\r\n", "\n")
 
-	// Execute Vue load processor chain if any
+	// Execute Vue load processor chain if any processors are registered
 	if len(opts.onVueLoadProcessors) > 0 {
 		for _, processor := range opts.onVueLoadProcessors {
 			var processorErr error
@@ -206,24 +215,27 @@ func readVueSource(args api.OnLoadArgs, opts *options, build *api.PluginBuild) (
 	return source, nil
 }
 
-// generateHashId generates a hash ID for the given source string.
+// generateHashId generates a unique hash ID for the given source string.
+// Uses xxhash for fast and consistent hashing across builds.
 func generateHashId(source string) string {
 	return strconv.FormatUint(xxhash.Sum64String(source), 16)
 }
 
-// generateEntryContents generates the entry JS code for a Vue SFC.
-// It uses a Go template to generate the code based on the SFC parts.
+// generateEntryContents generates the entry JavaScript code for a Vue Single File Component.
+// It creates import statements and component setup code that combines the script, template, and styles.
+// The generated code follows Vue 3's component structure and handles SSR/CSR rendering modes.
 func generateEntryContents(filePath, dataId string, isSSR bool,
 	sfcScript map[string]interface{}, sfcTemplate map[string]interface{},
 	sfcStyles []map[string]interface{}) (string, error) {
 
-	// Convert filePath to relative POSIX path for import statements
+	// Convert file path to relative POSIX path for consistent import statements
 	relPath, err := filepath.Rel(".", filePath)
 	if err != nil {
 		relPath = filePath
 	}
 	relPath = toPosixPath(relPath)
 
+	// Create template with helper functions for conditional code generation
 	tpl := template.Must(template.New(filePath).Funcs(template.FuncMap{
 		"SSR": func() bool {
 			return isSSR
@@ -274,11 +286,13 @@ export * from '{{ .relPath }}?type=script'
 export default script;
 `))
 
+	// Prepare template data
 	data := map[string]interface{}{
 		"relPath": relPath,
 		"styles":  sfcStyles,
 	}
 
+	// Execute template and generate final code
 	contentsBuf := new(bytes.Buffer)
 	if err := tpl.Execute(contentsBuf, data); err != nil {
 		return "", fmt.Errorf("failed to execute Vue entry template: %w", err)
@@ -288,22 +302,23 @@ export default script;
 }
 
 // registerResolveHandler registers the file resolution handler for .vue files.
-// Handles path aliases, relative paths, and parses URL parameters.
+// Handles path aliases, relative paths, URL parameters, and custom resolve processors.
+// This handler determines how Vue file imports are resolved and which namespace they belong to.
 func registerResolveHandler(opts *options, build *api.PluginBuild) {
 	build.OnResolve(api.OnResolveOptions{Filter: `\.vue(\?.*)?$`}, func(args api.OnResolveArgs) (api.OnResolveResult, error) {
-		// Handle path aliases
+		// Apply TypeScript path aliases if configured
 		pathAlias, err := parseTsconfigPathAlias(build.InitialOptions)
 		if err != nil {
 			return api.OnResolveResult{}, err
 		}
 		args.Path = applyPathAlias(pathAlias, args.Path)
 
-		// Handle relative paths
+		// Convert relative paths to absolute paths
 		if !filepath.IsAbs(args.Path) {
 			args.Path = filepath.Clean(filepath.Join(args.ResolveDir, args.Path))
 		}
 
-		// Execute Vue resolve processor chain if any
+		// Execute custom Vue resolve processor chain if any processors are registered
 		if len(opts.onVueResolveProcessors) > 0 {
 			for _, processor := range opts.onVueResolveProcessors {
 				result, err := processor(&args, build.InitialOptions)
@@ -316,7 +331,7 @@ func registerResolveHandler(opts *options, build *api.PluginBuild) {
 			}
 		}
 
-		// Parse URL parameters
+		// Parse URL parameters to determine the SFC part type (script, template, style)
 		pathUrl, _ := url.Parse(args.Path)
 		params := pathUrl.Query()
 		namespace := "file"
@@ -324,11 +339,12 @@ func registerResolveHandler(opts *options, build *api.PluginBuild) {
 			namespace = "sfc-" + t
 		}
 
-		// Setup plugin data
+		// Setup plugin data for passing information to subsequent handlers
 		if args.PluginData == nil {
 			args.PluginData = make(map[string]interface{})
 		}
 
+		// Extract style index from URL parameters for multi-style components
 		if indexStr := params.Get("index"); indexStr != "" {
 			if index, err := strconv.Atoi(indexStr); err == nil {
 				args.PluginData.(map[string]interface{})["index"] = index
@@ -343,8 +359,9 @@ func registerResolveHandler(opts *options, build *api.PluginBuild) {
 	})
 }
 
-// registerScriptHandler registers the script handler for .vue files.
-// Loads the script part and attaches sourcemap if present.
+// registerScriptHandler registers the script handler for Vue Single File Components.
+// Loads the precompiled script part and optionally attaches sourcemap information.
+// Determines the appropriate loader (JS/TS) based on the script language.
 func registerScriptHandler(build *api.PluginBuild) {
 	build.OnLoad(api.OnLoadOptions{Filter: `.*`, Namespace: "sfc-script"}, func(args api.OnLoadArgs) (api.OnLoadResult, error) {
 		pluginData := args.PluginData.(map[string]interface{})
@@ -352,7 +369,7 @@ func registerScriptHandler(build *api.PluginBuild) {
 
 		content := script["content"].(string)
 
-		// Add sourcemap if present
+		// Append sourcemap as inline data URL if sourcemaps are enabled and available
 		if build.InitialOptions.Sourcemap > 0 && script["map"] != nil {
 			sourceMapJSON, err := json.Marshal(script["map"])
 			if err != nil {
@@ -362,7 +379,7 @@ func registerScriptHandler(build *api.PluginBuild) {
 			content += "\n\n//@ sourceMappingURL=data:application/json;charset=utf-8;base64," + sourceMapBase64
 		}
 
-		// Determine loader type
+		// Determine appropriate loader based on script language
 		loader := api.LoaderJS
 		if script["lang"] != nil && script["lang"].(string) == "ts" {
 			loader = api.LoaderTS
@@ -377,28 +394,28 @@ func registerScriptHandler(build *api.PluginBuild) {
 	})
 }
 
-// registerTemplateHandler registers the template handler for .vue files.
-// Loads the precompiled template part and attaches warnings if present.
+// registerTemplateHandler registers the template handler for Vue Single File Components.
+// Loads the precompiled template part and converts template compilation tips to build warnings.
+// Performs type-safe conversion of tips to prevent runtime panics.
 func registerTemplateHandler(build *api.PluginBuild) {
 	build.OnLoad(api.OnLoadOptions{Filter: `.*`, Namespace: "sfc-template"}, func(args api.OnLoadArgs) (api.OnLoadResult, error) {
 		pluginData := args.PluginData.(map[string]interface{})
 
-		// Use precompiled template result
+		// Extract precompiled template result
 		templateResult := pluginData["template"].(map[string]interface{})
-
 		code := templateResult["code"].(string)
 
-		// Extract warning information
+		// Convert template compilation tips to build warnings with type safety
 		var mappedTips []api.Message
 		if tips, ok := templateResult["tips"].([]interface{}); ok {
 			for _, tip := range tips {
-				// Type-safe conversion to string
+				// Type-safe conversion to string to prevent panics from invalid tip types
 				if tipStr, isString := tip.(string); isString {
 					mappedTips = append(mappedTips, api.Message{
 						Text: tipStr,
 					})
 				}
-				// Silently skip non-string tips to avoid panic
+				// Silently skip non-string tips to maintain build stability
 			}
 		}
 
@@ -412,22 +429,21 @@ func registerTemplateHandler(build *api.PluginBuild) {
 	})
 }
 
-// registerStyleHandler registers the style handler for .vue files.
-// Loads the precompiled style part based on the index from URL parameters.
+// registerStyleHandler registers the style handler for Vue Single File Components.
+// Loads the precompiled style part based on the index specified in URL parameters.
+// Supports multiple style blocks within a single Vue component.
 func registerStyleHandler(build *api.PluginBuild) {
 	build.OnLoad(api.OnLoadOptions{Filter: `.*`, Namespace: "sfc-style"}, func(args api.OnLoadArgs) (api.OnLoadResult, error) {
 		pluginData := args.PluginData.(map[string]interface{})
 
-		// Get index from URL query parameters
+		// Extract style index from URL query parameters
 		parsedURL, _ := url.Parse(args.Path)
-
 		params := parsedURL.Query()
 		indexStr := params.Get("index")
 		index, _ := strconv.Atoi(indexStr)
 
-		// Use precompiled style result
+		// Load the specific style block by index
 		styles := pluginData["styles"].([]map[string]interface{})
-
 		styleResult := styles[index]
 		code := styleResult["code"].(string)
 

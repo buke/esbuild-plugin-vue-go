@@ -19,12 +19,15 @@ import (
 )
 
 // HtmlProcessorOptions holds builder functions for script and CSS tag attributes.
+// These builders allow customization of how JavaScript and CSS assets are injected into HTML.
 type HtmlProcessorOptions struct {
 	ScriptAttrBuilder func(filename string, htmlSourceFile string) []html.Attribute // JS script tag attribute builder
 	CssAttrBuilder    func(filename string, htmlSourceFile string) []html.Attribute // CSS link tag attribute builder
 }
 
 // NewHtmlProcessor returns an IndexHtmlProcessor that injects JS and CSS tags and removes specified nodes.
+// It processes build output files and automatically injects appropriate script and link tags into the HTML head.
+// The processor supports custom attribute builders for fine-grained control over tag generation.
 func NewHtmlProcessor(htmlProcessorOptions HtmlProcessorOptions) IndexHtmlProcessor {
 	return func(doc *html.Node, result *api.BuildResult, opts *options, build *api.PluginBuild) error {
 		if htmlProcessorOptions.ScriptAttrBuilder == nil {
@@ -60,14 +63,14 @@ func NewHtmlProcessor(htmlProcessorOptions HtmlProcessorOptions) IndexHtmlProces
 
 		htmlFile, _ := filepath.Abs(opts.indexHtmlOptions.OutFile)
 
-		// Find <head> tag in the HTML document
+		// Find <head> tag in the HTML document for asset injection
 		headNode := htmlquery.FindOne(doc, "//head")
-		// Process all output files
+		// Process all output files from the build result
 		for _, outputFile := range result.OutputFiles {
-			// Normalize output file path
+			// Normalize output file path to absolute path
 			outputFile, _ := filepath.Abs(outputFile.Path)
 
-			// Fixed file filtering logic
+			// Filter files to only include those generated from entry points
 			shouldInclude := false
 			for _, entryPoint := range build.InitialOptions.EntryPoints {
 				entry := filepath.Base(entryPoint)
@@ -84,7 +87,7 @@ func NewHtmlProcessor(htmlProcessorOptions HtmlProcessorOptions) IndexHtmlProces
 			// Add tags based on file extension
 			switch filepath.Ext(outputFile) {
 			case ".js":
-				// Add JavaScript file
+				// Add JavaScript file as script tag
 				scriptNode := &html.Node{
 					Type: html.ElementNode,
 					Data: "script",
@@ -97,7 +100,7 @@ func NewHtmlProcessor(htmlProcessorOptions HtmlProcessorOptions) IndexHtmlProces
 				}
 				headNode.AppendChild(newline)
 			case ".css":
-				// Add CSS file
+				// Add CSS file as link tag
 				linkNode := &html.Node{
 					Type: html.ElementNode,
 					Data: "link",
@@ -112,7 +115,7 @@ func NewHtmlProcessor(htmlProcessorOptions HtmlProcessorOptions) IndexHtmlProces
 			}
 		}
 
-		// Remove specified HTML nodes by XPath
+		// Remove specified HTML nodes by XPath expressions
 		for _, xpath := range opts.indexHtmlOptions.RemoveTagXPaths {
 			nodes := htmlquery.Find(doc, xpath)
 			for _, node := range nodes {
@@ -126,10 +129,12 @@ func NewHtmlProcessor(htmlProcessorOptions HtmlProcessorOptions) IndexHtmlProces
 	}
 }
 
-// htmlHandle 处理HTML文件
+// setupHtmlHandler registers the HTML processing handler for the plugin.
+// This handler processes HTML files after the build completes, injecting generated assets
+// and applying custom transformations.
 func setupHtmlHandler(opts *options, build *api.PluginBuild) {
 	build.OnEnd(func(result *api.BuildResult) (api.OnEndResult, error) {
-		// 跳过不需要处理HTML的情况
+		// Skip processing if no source file is specified or write is disabled
 		if opts.indexHtmlOptions.SourceFile == "" || !build.InitialOptions.Write {
 			return api.OnEndResult{}, nil
 		}
@@ -141,13 +146,13 @@ func setupHtmlHandler(opts *options, build *api.PluginBuild) {
 		}
 
 		if len(opts.indexHtmlOptions.IndexHtmlProcessors) == 0 {
-			// 如果没有自定义处理器，添加默认的HTML处理器
+			// If no custom processors are configured, add the default HTML processor
 			opts.indexHtmlOptions.IndexHtmlProcessors = []IndexHtmlProcessor{
 				NewHtmlProcessor(HtmlProcessorOptions{}),
 			}
 		}
 
-		// 读取并解析HTML文件
+		// Read and parse the source HTML file
 		sourceFile, err := os.Open(opts.indexHtmlOptions.SourceFile)
 		if err != nil {
 			return api.OnEndResult{}, fmt.Errorf("failed to open source file: %v", err)
@@ -160,7 +165,7 @@ func setupHtmlHandler(opts *options, build *api.PluginBuild) {
 		}
 
 		doc, _ := htmlquery.Parse(utf8Reader)
-		// 执行HTML处理器链
+		// Execute the HTML processor chain
 		if len(opts.indexHtmlOptions.IndexHtmlProcessors) > 0 {
 			for _, processor := range opts.indexHtmlOptions.IndexHtmlProcessors {
 				if err := processor(doc, result, opts, build); err != nil {
@@ -169,7 +174,7 @@ func setupHtmlHandler(opts *options, build *api.PluginBuild) {
 			}
 		}
 
-		// 渲染并保存HTML
+		// Render and save the modified HTML document
 		var buf bytes.Buffer
 		err = html.Render(&buf, doc)
 		if err != nil {
@@ -185,6 +190,9 @@ func setupHtmlHandler(opts *options, build *api.PluginBuild) {
 	})
 }
 
+// detectAndConvertToUTF8 detects the character encoding of the input reader and converts it to UTF-8.
+// This function handles various character encodings commonly found in HTML files to ensure
+// proper parsing regardless of the source file encoding.
 func detectAndConvertToUTF8(r io.Reader) (io.Reader, error) {
 	b, err := io.ReadAll(r)
 	if err != nil {
