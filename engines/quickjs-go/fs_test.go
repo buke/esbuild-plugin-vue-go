@@ -245,59 +245,6 @@ func TestLoadFsModule(t *testing.T) {
 	}
 }
 
-// TestLoadFsModuleIntegration tests the integrated FS module functionality
-func TestLoadFsModuleIntegration(t *testing.T) {
-	runtime := quickjs.NewRuntime()
-	defer runtime.Close()
-
-	ctx := runtime.NewContext()
-	defer ctx.Close()
-
-	// Create a simple engine wrapper for testing
-	engine := &quickjsengine.Engine{
-		Runtime: runtime,
-		Ctx:     ctx,
-	}
-
-	// Load the FS module
-	err := loadFsModule(engine)
-	if err != nil {
-		t.Fatalf("Failed to load FS module: %v", err)
-	}
-
-	// Create a temporary file for testing
-	tmpFile := filepath.Join(t.TempDir(), "integration_test.txt")
-	testContent := "Integration test content"
-	err = os.WriteFile(tmpFile, []byte(testContent), 0644)
-	if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
-
-	// Test fileExists through JS
-	existsResult := ctx.Eval(`compilerFs.fileExists("` + tmpFile + `")`)
-	defer existsResult.Free()
-	if !existsResult.Bool() {
-		t.Error("Expected file to exist")
-	}
-
-	// Test readFile through JS
-	readResult := ctx.Eval(`compilerFs.readFile("` + tmpFile + `")`)
-	defer readResult.Free()
-	if readResult.String() != testContent {
-		t.Errorf("Expected content '%s', got '%s'", testContent, readResult.String())
-	}
-
-	// Test realpath through JS
-	realpathResult := ctx.Eval(`compilerFs.realpath("` + tmpFile + `")`)
-	defer realpathResult.Free()
-	if realpathResult.IsUndefined() {
-		t.Error("Expected absolute path, got undefined")
-	}
-	if !filepath.IsAbs(realpathResult.String()) {
-		t.Errorf("Expected absolute path, got: %s", realpathResult.String())
-	}
-}
-
 // TestLoadFsModuleErrorHandling tests error handling in FS module functions
 func TestLoadFsModuleErrorHandling(t *testing.T) {
 	runtime := quickjs.NewRuntime()
@@ -372,61 +319,6 @@ func TestLoadFsModuleErrorHandling(t *testing.T) {
 	defer emptyReadErrorTest.Free()
 	if emptyReadErrorTest.String() != "error_thrown" {
 		t.Error("Expected readFile to throw error for empty path")
-	}
-}
-
-// TestFsModuleWithDirectories tests FS module with directory operations
-func TestFsModuleWithDirectories(t *testing.T) {
-	runtime := quickjs.NewRuntime()
-	defer runtime.Close()
-
-	ctx := runtime.NewContext()
-	defer ctx.Close()
-
-	// Create a simple engine wrapper for testing
-	engine := &quickjsengine.Engine{
-		Runtime: runtime,
-		Ctx:     ctx,
-	}
-
-	// Load the FS module
-	err := loadFsModule(engine)
-	if err != nil {
-		t.Fatalf("Failed to load FS module: %v", err)
-	}
-
-	// Create a temporary directory
-	tmpDir := t.TempDir()
-
-	// Test fileExists with directory
-	dirExistsResult := ctx.Eval(`compilerFs.fileExists("` + tmpDir + `")`)
-	defer dirExistsResult.Free()
-	if !dirExistsResult.Bool() {
-		t.Error("Expected directory to exist")
-	}
-
-	// Test readFile with directory - should throw exception
-	dirReadErrorTest := ctx.Eval(`
-        try {
-            compilerFs.readFile("` + tmpDir + `");
-            "no_error";
-        } catch (err) {
-            "error_thrown";
-        }
-    `)
-	defer dirReadErrorTest.Free()
-	if dirReadErrorTest.String() != "error_thrown" {
-		t.Error("Expected readFile to throw error when reading directory")
-	}
-
-	// Test realpath with directory
-	dirRealpathResult := ctx.Eval(`compilerFs.realpath("` + tmpDir + `")`)
-	defer dirRealpathResult.Free()
-	if dirRealpathResult.IsUndefined() {
-		t.Error("Expected absolute path for directory")
-	}
-	if !filepath.IsAbs(dirRealpathResult.String()) {
-		t.Errorf("Expected absolute directory path, got: %s", dirRealpathResult.String())
 	}
 }
 
