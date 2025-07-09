@@ -37,4 +37,4 @@ go.work.sum
 node_modules/
 dist/
 
-!engine/compilerjs/dist/
+!engines/quickjs-go/compilerjs/dist/
