@@ -1,7 +1,7 @@
 // Copyright 2025 Brian Wang <wangbuke@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
 
-package engine
+package qjscompiler
 
 import (
 	"os"

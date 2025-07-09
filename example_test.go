@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	vueplugin "github.com/buke/esbuild-plugin-vue-go"
-	"github.com/buke/esbuild-plugin-vue-go/engine"
+	qjscompiler "github.com/buke/esbuild-plugin-vue-go/engines/quickjs-go"
 	jsexecutor "github.com/buke/js-executor"
 	"github.com/evanw/esbuild/pkg/api"
 )
@@ -17,7 +17,7 @@ import (
 func Example() {
 	// 1. Create a new JavaScript executor and start it.
 	jsExec, _ := jsexecutor.NewExecutor(
-		jsexecutor.WithJsEngine(engine.NewVueCompilerFactory()),
+		jsexecutor.WithJsEngine(qjscompiler.NewVueCompilerFactory()),
 	)
 	if err := jsExec.Start(); err != nil {
 		panic(err)

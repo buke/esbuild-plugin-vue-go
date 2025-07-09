@@ -101,15 +101,15 @@ func registerMainEntryHandler(opts *options, build *api.PluginBuild) {
 
 		compileResult, ok := jsResponse.Result.(map[string]interface{})
 		if !ok {
-			opts.logger.Error("Invalid compile result", "result", jsResponse.Result)
+			opts.logger.Error("Invalid Vue SFC compilation result", "result", jsResponse.Result, "file", args.Path)
 			return api.OnLoadResult{
 				Errors: []api.Message{{
-					Text: fmt.Sprintf("Invalid compile result: %v", jsResponse.Result),
+					Text: fmt.Sprintf("Invalid Vue SFC compilation result: %v", jsResponse.Result),
 					Location: &api.Location{
 						File: args.Path,
 					},
 				}},
-			}, fmt.Errorf("invalid compile result: %v", jsResponse.Result)
+			}, err
 		}
 
 		// 4. Extract each part from the compilation result
@@ -137,8 +137,15 @@ func registerMainEntryHandler(opts *options, build *api.PluginBuild) {
 		// 5. Generate entry content - use compilation result directly, no need for descriptors
 		contents, err := generateEntryContents(args.Path, dataId, isSSR, script, template, styles)
 		if err != nil {
-			opts.logger.Error("Failed to generate entry content", "error", err, "file", args.Path)
-			return api.OnLoadResult{}, err
+			opts.logger.Error("Failed to generate Vue entry contents", "error", err, "file", args.Path)
+			return api.OnLoadResult{
+				Errors: []api.Message{{
+					Text: fmt.Sprintf("Failed to generate Vue entry contents: %v", err),
+					Location: &api.Location{
+						File: args.Path,
+					},
+				}},
+			}, err
 		}
 
 		// 6. Prepare plugin data
@@ -217,7 +224,7 @@ func generateEntryContents(filePath, dataId string, isSSR bool,
 	}
 	relPath = toPosixPath(relPath)
 
-	tpl, err := template.New(filePath).Funcs(template.FuncMap{
+	tpl := template.Must(template.New(filePath).Funcs(template.FuncMap{
 		"SSR": func() bool {
 			return isSSR
 		},
@@ -232,7 +239,7 @@ func generateEntryContents(filePath, dataId string, isSSR bool,
 		},
 		"someScoped": func() bool {
 			for _, style := range sfcStyles {
-				if scoped, ok := style["scoped"].(bool); ok && scoped {
+				if scoped := style["scoped"].(bool); scoped {
 					return true
 				}
 			}
@@ -265,10 +272,7 @@ script.__ssrInlineRender = true;
 export * from '{{ .relPath }}?type=script'
 {{ end }}
 export default script;
-`)
-	if err != nil {
-		return "", err
-	}
+`))
 
 	data := map[string]interface{}{
 		"relPath": relPath,
@@ -277,7 +281,7 @@ export default script;
 
 	contentsBuf := new(bytes.Buffer)
 	if err := tpl.Execute(contentsBuf, data); err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to execute Vue entry template: %w", err)
 	}
 
 	return contentsBuf.String(), nil
@@ -313,11 +317,7 @@ func registerResolveHandler(opts *options, build *api.PluginBuild) {
 		}
 
 		// Parse URL parameters
-		pathUrl, err := url.Parse(args.Path)
-		if err != nil {
-			return api.OnResolveResult{}, err
-		}
-
+		pathUrl, _ := url.Parse(args.Path)
 		params := pathUrl.Query()
 		namespace := "file"
 		if t := params.Get("type"); t != "" {
@@ -363,10 +363,9 @@ func registerScriptHandler(build *api.PluginBuild) {
 		}
 
 		// Determine loader type
-		scriptLang := script["lang"].(string)
-		loader := api.LoaderTS
-		if scriptLang == "js" {
-			loader = api.LoaderJS
+		loader := api.LoaderJS
+		if script["lang"] != nil && script["lang"].(string) == "ts" {
+			loader = api.LoaderTS
 		}
 
 		return api.OnLoadResult{
@@ -385,12 +384,7 @@ func registerTemplateHandler(build *api.PluginBuild) {
 		pluginData := args.PluginData.(map[string]interface{})
 
 		// Use precompiled template result
-		templateResult, ok := pluginData["template"].(map[string]interface{})
-		if !ok {
-			return api.OnLoadResult{
-				Errors: []api.Message{{Text: "template was not precompiled, this should not happen"}},
-			}, nil
-		}
+		templateResult := pluginData["template"].(map[string]interface{})
 
 		code := templateResult["code"].(string)
 
@@ -422,29 +416,14 @@ func registerStyleHandler(build *api.PluginBuild) {
 		pluginData := args.PluginData.(map[string]interface{})
 
 		// Get index from URL query parameters
-		parsedURL, err := url.Parse(args.Path)
-		if err != nil {
-			return api.OnLoadResult{
-				Errors: []api.Message{{Text: "Failed to parse style URL: " + err.Error()}},
-			}, nil
-		}
+		parsedURL, _ := url.Parse(args.Path)
 
 		params := parsedURL.Query()
 		indexStr := params.Get("index")
-		index, err := strconv.Atoi(indexStr)
-		if err != nil {
-			return api.OnLoadResult{
-				Errors: []api.Message{{Text: "Invalid style index: " + indexStr}},
-			}, nil
-		}
+		index, _ := strconv.Atoi(indexStr)
 
 		// Use precompiled style result
-		styles, ok := pluginData["styles"].([]map[string]interface{})
-		if !ok || index >= len(styles) {
-			return api.OnLoadResult{
-				Errors: []api.Message{{Text: "Style was not precompiled or index out of range"}},
-			}, nil
-		}
+		styles := pluginData["styles"].([]map[string]interface{})
 
 		styleResult := styles[index]
 		code := styleResult["code"].(string)

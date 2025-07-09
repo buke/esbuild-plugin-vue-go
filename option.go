@@ -228,7 +228,6 @@ func normalizeEsbuildOptions(initialOptions *api.BuildOptions) {
 	}
 
 	initialOptions.Metafile = true
-
 }
 
 // SimpleCopy returns an OnEndProcessor that copies files from fileMap after build.

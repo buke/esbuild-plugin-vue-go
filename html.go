@@ -31,15 +31,14 @@ func NewHtmlProcessor(htmlProcessorOptions HtmlProcessorOptions) IndexHtmlProces
 			// Default JS script tag attribute builder
 			htmlProcessorOptions.ScriptAttrBuilder = func(filename string, htmlFile string) []html.Attribute {
 				// Compute relative path between filename and htmlSourceFile
-				relPath, err := filepath.Rel(filepath.Dir(htmlFile), filename)
-				if err != nil {
-					// Fallback to original path if failed
-					relPath = filename
+				relPath, _ := filepath.Rel(filepath.Dir(htmlFile), filename)
+				if relPath != "" {
+					filename = filepath.ToSlash(relPath) // Ensure forward slashes for web compatibility
 				}
 				return []html.Attribute{
 					{Key: "crossorigin", Val: ""},
 					{Key: "type", Val: "module"},
-					{Key: "src", Val: relPath},
+					{Key: "src", Val: filename},
 				}
 			}
 		}
@@ -47,42 +46,38 @@ func NewHtmlProcessor(htmlProcessorOptions HtmlProcessorOptions) IndexHtmlProces
 		if htmlProcessorOptions.CssAttrBuilder == nil {
 			// Default CSS link tag attribute builder
 			htmlProcessorOptions.CssAttrBuilder = func(filename string, htmlFile string) []html.Attribute {
-				relPath, err := filepath.Rel(filepath.Dir(htmlFile), filename)
-				if err != nil {
-					// Fallback to original path if failed
-					relPath = filename
+				relPath, _ := filepath.Rel(filepath.Dir(htmlFile), filename)
+				if relPath != "" {
+					filename = filepath.ToSlash(relPath) // Ensure forward slashes for web compatibility
 				}
 				return []html.Attribute{
 					{Key: "crossorigin", Val: ""},
 					{Key: "rel", Val: "stylesheet"},
-					{Key: "href", Val: relPath},
+					{Key: "href", Val: filename},
 				}
 			}
 		}
 
-		// Find <head> tag in the HTML document
-		headNode := htmlquery.FindOne(doc, "//head")
-		if headNode == nil {
-			return fmt.Errorf("head tag not found in HTML document")
-		}
-
 		htmlFile, _ := filepath.Abs(opts.indexHtmlOptions.OutFile)
 
+		// Find <head> tag in the HTML document
+		headNode := htmlquery.FindOne(doc, "//head")
 		// Process all output files
 		for _, outputFile := range result.OutputFiles {
 			// Normalize output file path
 			outputFile, _ := filepath.Abs(outputFile.Path)
 
-			skip := false
+			// Fixed file filtering logic
+			shouldInclude := false
 			for _, entryPoint := range build.InitialOptions.EntryPoints {
 				entry := filepath.Base(entryPoint)
-				entryPointPrefix := strings.TrimSuffix(entry, filepath.Ext(entry)) + "-"
-				if !strings.HasPrefix(filepath.Base(outputFile), entryPointPrefix) {
-					skip = true
-					break
+				entryPointPrefix := strings.TrimSuffix(entry, filepath.Ext(entry))
+				if strings.HasPrefix(filepath.Base(outputFile), entryPointPrefix) {
+					shouldInclude = true
+					break // Found a match, no need to check other entry points
 				}
 			}
-			if skip {
+			if !shouldInclude {
 				continue // Skip files not generated from entry points
 			}
 
@@ -164,11 +159,7 @@ func setupHtmlHandler(opts *options, build *api.PluginBuild) {
 			return api.OnEndResult{}, fmt.Errorf("failed to convert source file to UTF-8: %v", err)
 		}
 
-		doc, err := htmlquery.Parse(utf8Reader)
-		if err != nil {
-			return api.OnEndResult{}, fmt.Errorf("failed to parse HTML document: %v", err)
-		}
-
+		doc, _ := htmlquery.Parse(utf8Reader)
 		// 执行HTML处理器链
 		if len(opts.indexHtmlOptions.IndexHtmlProcessors) > 0 {
 			for _, processor := range opts.indexHtmlOptions.IndexHtmlProcessors {
@@ -177,8 +168,6 @@ func setupHtmlHandler(opts *options, build *api.PluginBuild) {
 				}
 			}
 		}
-
-		// 注意：移除了默认处理器回退，用户必须明确添加处理器
 
 		// 渲染并保存HTML
 		var buf bytes.Buffer

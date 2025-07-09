@@ -71,6 +71,9 @@ func applyPathAlias(pathAlias map[string]string, path string) string {
 		if alias[len(alias)-1] == '*' {
 			aliasPattern = aliasPattern[:len(aliasPattern)-2] + "(.*)"
 			realPath = realPath[:len(realPath)-1] + "$1"
+		} else {
+			// For exact aliases, add $ to ensure full match
+			aliasPattern = aliasPattern + "$"
 		}
 		re := regexp.MustCompile(aliasPattern)
 		if re.MatchString(path) {
