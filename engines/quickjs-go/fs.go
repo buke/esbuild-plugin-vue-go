@@ -22,24 +22,28 @@ func fileExistsFunc(ctx *quickjs.Context, this *quickjs.Value, args []*quickjs.V
 }
 
 // readFileFunc reads the content of a file and returns it as a string.
-// If the file cannot be read, returns undefined.
 func readFileFunc(ctx *quickjs.Context, this *quickjs.Value, args []*quickjs.Value) *quickjs.Value {
 	file := args[0].String()
 	data, err := os.ReadFile(file)
 	if err != nil {
-		return ctx.Undefined()
+		return ctx.ThrowError(err)
 	}
 	return ctx.String(string(data))
 }
 
-// realpathFunc returns the absolute path of the given file.
-// If the path cannot be resolved, returns undefined.
+// realpathFunc returns the real absolute path of the given file, resolving symbolic links.
 func realpathFunc(ctx *quickjs.Context, this *quickjs.Value, args []*quickjs.Value) *quickjs.Value {
 	file := args[0].String()
-	realpath, err := filepath.Abs(file)
+
+	// EvalSymlinks resolves symlinks and validates existence
+	resolved, err := filepath.EvalSymlinks(file)
 	if err != nil {
-		return ctx.Undefined()
+		return ctx.ThrowError(err)
 	}
+
+	// Convert to absolute path (this should rarely fail since path exists)
+	realpath, _ := filepath.Abs(resolved)
+
 	return ctx.String(realpath)
 }
 
