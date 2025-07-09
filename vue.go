@@ -391,11 +391,14 @@ func registerTemplateHandler(build *api.PluginBuild) {
 		// Extract warning information
 		var mappedTips []api.Message
 		if tips, ok := templateResult["tips"].([]interface{}); ok {
-			mappedTips = make([]api.Message, len(tips))
-			for i, tip := range tips {
-				mappedTips[i] = api.Message{
-					Text: tip.(string),
+			for _, tip := range tips {
+				// Type-safe conversion to string
+				if tipStr, isString := tip.(string); isString {
+					mappedTips = append(mappedTips, api.Message{
+						Text: tipStr,
+					})
 				}
+				// Silently skip non-string tips to avoid panic
 			}
 		}
 

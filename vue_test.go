@@ -854,10 +854,7 @@ func TestVueTemplateHandlerWithTips(t *testing.T) {
 
 // TestVueTemplateHandlerWithInvalidTips tests invalid tips handling
 func TestVueTemplateHandlerWithInvalidTips(t *testing.T) {
-	// Note: This test would cause panic because vue.go code doesn't check for non-string types
-	// We skip this test to avoid the panic - this reveals a bug in vue.go that should be fixed
-	t.Skip("Skipping test that causes panic - this reveals a bug in vue.go that should be fixed")
-
+	// Test mixed valid and invalid tips - should only process valid string tips
 	invalidTips := []interface{}{"Valid tip", 42, "Another valid tip"} // 42 is invalid type
 
 	mockConfig := &MockEngineConfig{
@@ -889,22 +886,42 @@ func TestVueTemplateHandlerWithInvalidTips(t *testing.T) {
 		EntryPoints: []string{entryFile},
 		Bundle:      true,
 		Write:       false,
-		LogLevel:    api.LogLevelError,
+		LogLevel:    api.LogLevelInfo, // Change to Info to see warnings
 		Plugins:     []api.Plugin{vuePlugin},
 	})
 
-	if len(result.Errors) == 0 {
-		t.Error("Expected build errors due to invalid tips, got none")
+	// Should not have errors - invalid tips should be silently skipped
+	if len(result.Errors) > 0 {
+		t.Errorf("Expected successful build, got errors: %v", result.Errors)
+		return
 	}
 
-	foundError := false
-	for _, err := range result.Errors {
-		if strings.Contains(err.Text, "interface conversion") {
-			foundError = true
-			break
+	// Should only have warnings for valid string tips (2 out of 3)
+	vueWarnings := filterVuePluginWarnings(result.Warnings)
+	expectedWarnings := 2 // Only "Valid tip" and "Another valid tip"
+	if len(vueWarnings) != expectedWarnings {
+		t.Errorf("Expected %d Vue plugin warnings (valid tips only), got %d", expectedWarnings, len(vueWarnings))
+		return
+	}
+
+	// Check that the valid tips are preserved (don't assume order)
+	expectedTips := map[string]bool{
+		"Valid tip":         false,
+		"Another valid tip": false,
+	}
+
+	for _, warning := range vueWarnings {
+		if _, exists := expectedTips[warning.Text]; exists {
+			expectedTips[warning.Text] = true
+		} else {
+			t.Errorf("Unexpected warning text: '%s'", warning.Text)
 		}
 	}
-	if !foundError {
-		t.Errorf("Expected interface conversion error, got: %v", result.Errors)
+
+	// Verify all expected tips were found
+	for tip, found := range expectedTips {
+		if !found {
+			t.Errorf("Expected warning text '%s' not found", tip)
+		}
 	}
 }
