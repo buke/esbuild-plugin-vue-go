@@ -10,7 +10,7 @@ require (
 	github.com/evanw/esbuild v0.25.6
 	github.com/rs/xid v1.6.0
 	golang.org/x/net v0.41.0
-	golang.org/x/text v0.26.0
+	golang.org/x/text v0.27.0
 )
 
 require (
