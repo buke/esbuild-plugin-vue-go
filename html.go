@@ -28,7 +28,10 @@ type HtmlProcessorOptions struct {
 // NewHtmlProcessor returns an IndexHtmlProcessor that injects JS and CSS tags and removes specified nodes.
 // It processes build output files and automatically injects appropriate script and link tags into the HTML head.
 // The processor supports custom attribute builders for fine-grained control over tag generation.
-func NewHtmlProcessor(htmlProcessorOptions HtmlProcessorOptions) IndexHtmlProcessor {
+func DefaultHtmlProcessor(htmlProcessorOptions *HtmlProcessorOptions) IndexHtmlProcessor {
+	if htmlProcessorOptions == nil {
+		htmlProcessorOptions = &HtmlProcessorOptions{}
+	}
 	return func(doc *html.Node, result *api.BuildResult, opts *Options, build *api.PluginBuild) error {
 		if htmlProcessorOptions.ScriptAttrBuilder == nil {
 			// Default JS script tag attribute builder
@@ -148,7 +151,7 @@ func setupHtmlHandler(opts *Options, build *api.PluginBuild) {
 		if len(opts.indexHtmlOptions.IndexHtmlProcessors) == 0 {
 			// If no custom processors are configured, add the default HTML processor
 			opts.indexHtmlOptions.IndexHtmlProcessors = []IndexHtmlProcessor{
-				NewHtmlProcessor(HtmlProcessorOptions{}),
+				DefaultHtmlProcessor(nil),
 			}
 		}
 

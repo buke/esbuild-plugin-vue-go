@@ -127,7 +127,7 @@ func TestNewHtmlProcessor(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			processor := NewHtmlProcessor(test.options)
+			processor := DefaultHtmlProcessor(&test.options)
 			if processor == nil {
 				t.Fatal("Expected non-nil processor")
 			}
@@ -163,7 +163,7 @@ func TestNewHtmlProcessor(t *testing.T) {
 }
 
 func TestHtmlProcessorFileFiltering(t *testing.T) {
-	processor := NewHtmlProcessor(HtmlProcessorOptions{})
+	processor := DefaultHtmlProcessor(nil)
 
 	htmlContent := `<html><head></head><body></body></html>`
 	doc, err := html.Parse(strings.NewReader(htmlContent))
@@ -211,7 +211,7 @@ func TestHtmlProcessorFileFiltering(t *testing.T) {
 }
 
 func TestHtmlProcessorRemoveTagXPaths(t *testing.T) {
-	processor := NewHtmlProcessor(HtmlProcessorOptions{})
+	processor := DefaultHtmlProcessor(nil)
 
 	htmlContent := `<html><head><title>Test</title><meta name="remove-me" content="test"></head><body></body></html>`
 	doc, err := html.Parse(strings.NewReader(htmlContent))
