@@ -249,7 +249,7 @@ func TestSimpleCopyCreateDirAndCopyFile(t *testing.T) {
 // TestWithIndexHtmlOptionsAndProcessors checks WithIndexHtmlOptions and processor assignment.
 func TestWithIndexHtmlOptionsAndProcessors(t *testing.T) {
 	opts := newOptions()
-	processor := func(doc *html.Node, result *api.BuildResult, opts *options, build *api.PluginBuild) error {
+	processor := func(doc *html.Node, result *api.BuildResult, opts *Options, build *api.PluginBuild) error {
 		return nil
 	}
 	htmlOptions := IndexHtmlOptions{

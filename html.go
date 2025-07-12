@@ -29,7 +29,7 @@ type HtmlProcessorOptions struct {
 // It processes build output files and automatically injects appropriate script and link tags into the HTML head.
 // The processor supports custom attribute builders for fine-grained control over tag generation.
 func NewHtmlProcessor(htmlProcessorOptions HtmlProcessorOptions) IndexHtmlProcessor {
-	return func(doc *html.Node, result *api.BuildResult, opts *options, build *api.PluginBuild) error {
+	return func(doc *html.Node, result *api.BuildResult, opts *Options, build *api.PluginBuild) error {
 		if htmlProcessorOptions.ScriptAttrBuilder == nil {
 			// Default JS script tag attribute builder
 			htmlProcessorOptions.ScriptAttrBuilder = func(filename string, htmlFile string) []html.Attribute {
@@ -132,7 +132,7 @@ func NewHtmlProcessor(htmlProcessorOptions HtmlProcessorOptions) IndexHtmlProces
 // setupHtmlHandler registers the HTML processing handler for the plugin.
 // This handler processes HTML files after the build completes, injecting generated assets
 // and applying custom transformations.
-func setupHtmlHandler(opts *options, build *api.PluginBuild) {
+func setupHtmlHandler(opts *Options, build *api.PluginBuild) {
 	build.OnEnd(func(result *api.BuildResult) (api.OnEndResult, error) {
 		// Skip processing if no source file is specified or write is disabled
 		if opts.indexHtmlOptions.SourceFile == "" || !build.InitialOptions.Write {

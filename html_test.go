@@ -406,7 +406,7 @@ func TestHtmlHandlerWithCustomProcessor(t *testing.T) {
 
 	// Create custom processor
 	customProcessorCalled := false
-	customProcessor := func(doc *html.Node, result *api.BuildResult, opts *options, build *api.PluginBuild) error {
+	customProcessor := func(doc *html.Node, result *api.BuildResult, opts *Options, build *api.PluginBuild) error {
 		customProcessorCalled = true
 		headNode := htmlquery.FindOne(doc, "//head")
 		if headNode != nil {
@@ -450,14 +450,14 @@ func TestHtmlHandlerWithCustomProcessor(t *testing.T) {
 func TestHtmlHandlerErrorConditions(t *testing.T) {
 	tests := []struct {
 		name          string
-		setupOptions  func(*options, string)
+		setupOptions  func(*Options, string)
 		setupBuild    func(*api.BuildOptions)
 		expectError   bool
 		errorContains string
 	}{
 		{
 			name: "no_source_file",
-			setupOptions: func(opts *options, tmpDir string) {
+			setupOptions: func(opts *Options, tmpDir string) {
 				opts.indexHtmlOptions.SourceFile = ""
 			},
 			setupBuild: func(buildOpts *api.BuildOptions) {
@@ -468,7 +468,7 @@ func TestHtmlHandlerErrorConditions(t *testing.T) {
 		},
 		{
 			name: "write_false",
-			setupOptions: func(opts *options, tmpDir string) {
+			setupOptions: func(opts *Options, tmpDir string) {
 				opts.indexHtmlOptions.SourceFile = "/test/index.html"
 			},
 			setupBuild: func(buildOpts *api.BuildOptions) {
@@ -479,7 +479,7 @@ func TestHtmlHandlerErrorConditions(t *testing.T) {
 		},
 		{
 			name: "no_out_file",
-			setupOptions: func(opts *options, tmpDir string) {
+			setupOptions: func(opts *Options, tmpDir string) {
 				// Create a real HTML file
 				htmlSourceFile := filepath.Join(tmpDir, "index.html")
 				htmlContent := `<!DOCTYPE html><html><head><title>Test</title></head><body></body></html>`
@@ -498,7 +498,7 @@ func TestHtmlHandlerErrorConditions(t *testing.T) {
 		},
 		{
 			name: "nonexistent_source_file",
-			setupOptions: func(opts *options, tmpDir string) {
+			setupOptions: func(opts *Options, tmpDir string) {
 				opts.indexHtmlOptions.SourceFile = "/nonexistent/index.html"
 				// Create the output directory to avoid directory creation errors
 				distDir := filepath.Join(tmpDir, "dist")
@@ -516,7 +516,7 @@ func TestHtmlHandlerErrorConditions(t *testing.T) {
 		},
 		{
 			name: "write_to_nonexistent_directory",
-			setupOptions: func(opts *options, tmpDir string) {
+			setupOptions: func(opts *Options, tmpDir string) {
 				// Create a real HTML file
 				htmlSourceFile := filepath.Join(tmpDir, "index.html")
 				htmlContent := `<!DOCTYPE html><html><head><title>Test</title></head><body></body></html>`
@@ -612,7 +612,7 @@ func TestHtmlHandlerProcessorError(t *testing.T) {
 	jsExec := createTestExecutor(t)
 
 	// Create failing processor
-	failingProcessor := func(doc *html.Node, result *api.BuildResult, opts *options, build *api.PluginBuild) error {
+	failingProcessor := func(doc *html.Node, result *api.BuildResult, opts *Options, build *api.PluginBuild) error {
 		return fmt.Errorf("processor failed: custom error")
 	}
 
@@ -730,7 +730,7 @@ func TestSetupHtmlHandlerRenderErrorWithErrorNode(t *testing.T) {
 	jsExec := createTestExecutor(t)
 
 	// Create processor that adds ErrorNode
-	errorNodeProcessor := func(doc *html.Node, result *api.BuildResult, opts *options, build *api.PluginBuild) error {
+	errorNodeProcessor := func(doc *html.Node, result *api.BuildResult, opts *Options, build *api.PluginBuild) error {
 		headNode := htmlquery.FindOne(doc, "//head")
 		if headNode == nil {
 			return fmt.Errorf("head node not found")

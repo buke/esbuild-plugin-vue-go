@@ -29,7 +29,7 @@ func toPosixPath(path string) string {
 
 // setupVueHandler registers all handlers for Vue Single File Components (.vue files).
 // It sets up the complete processing pipeline including main entry, resolve, script, template, and style handlers.
-func setupVueHandler(opts *options, build *api.PluginBuild) {
+func setupVueHandler(opts *Options, build *api.PluginBuild) {
 	// Register main entry handler for .vue files
 	registerMainEntryHandler(opts, build)
 
@@ -45,7 +45,7 @@ func setupVueHandler(opts *options, build *api.PluginBuild) {
 // registerMainEntryHandler processes .vue files and precompiles all SFC parts.
 // This is the main entry point that orchestrates the compilation of Vue Single File Components.
 // It reads the source, compiles it using the JS executor, and generates the final entry code.
-func registerMainEntryHandler(opts *options, build *api.PluginBuild) {
+func registerMainEntryHandler(opts *Options, build *api.PluginBuild) {
 	// Determine production mode from build environment
 	isProd := true
 	if v, exists := parseImportMetaEnv(build.InitialOptions.Define, "PROD"); exists {
@@ -190,7 +190,7 @@ func registerMainEntryHandler(opts *options, build *api.PluginBuild) {
 
 // readVueSource reads and preprocesses the Vue source file.
 // It normalizes line endings and executes any registered Vue load processor chain.
-func readVueSource(args api.OnLoadArgs, opts *options, build *api.PluginBuild) (string, error) {
+func readVueSource(args api.OnLoadArgs, opts *Options, build *api.PluginBuild) (string, error) {
 	// Read file contents
 	fbyte, err := os.ReadFile(args.Path)
 	if err != nil {
@@ -304,7 +304,7 @@ export default script;
 // registerResolveHandler registers the file resolution handler for .vue files.
 // Handles path aliases, relative paths, URL parameters, and custom resolve processors.
 // This handler determines how Vue file imports are resolved and which namespace they belong to.
-func registerResolveHandler(opts *options, build *api.PluginBuild) {
+func registerResolveHandler(opts *Options, build *api.PluginBuild) {
 	build.OnResolve(api.OnResolveOptions{Filter: `\.vue(\?.*)?$`}, func(args api.OnResolveArgs) (api.OnResolveResult, error) {
 		// Apply TypeScript path aliases if configured
 		pathAlias, err := parseTsconfigPathAlias(build.InitialOptions)

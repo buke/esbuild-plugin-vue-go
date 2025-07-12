@@ -15,7 +15,7 @@ import (
 
 // setupSassHandler registers handlers for Sass files (.scss and .sass).
 // It sets up the complete processing pipeline including path resolution and compilation.
-func setupSassHandler(opts *options, build *api.PluginBuild) {
+func setupSassHandler(opts *Options, build *api.PluginBuild) {
 	// Register resolve handler for Sass files
 	registerSassResolveHandler(opts, build)
 
@@ -26,7 +26,7 @@ func setupSassHandler(opts *options, build *api.PluginBuild) {
 // registerSassResolveHandler registers the path resolution handler for Sass files.
 // It handles TypeScript path aliases and converts relative paths to absolute paths.
 // Resolved Sass files are assigned to the "sass-loader" namespace for further processing.
-func registerSassResolveHandler(opts *options, build *api.PluginBuild) {
+func registerSassResolveHandler(opts *Options, build *api.PluginBuild) {
 	build.OnResolve(api.OnResolveOptions{Filter: `\.s[ac]ss$`}, func(args api.OnResolveArgs) (api.OnResolveResult, error) {
 		// Parse TypeScript path aliases from tsconfig to support project-wide path mapping
 		pathAlias, err := parseTsconfigPathAlias(build.InitialOptions)
@@ -54,7 +54,7 @@ func registerSassResolveHandler(opts *options, build *api.PluginBuild) {
 // registerSassLoadHandler registers the handler to load and compile Sass files.
 // It reads the source content, processes it through any registered processors,
 // and compiles it to CSS using the Vue compiler's Sass service.
-func registerSassLoadHandler(opts *options, build *api.PluginBuild) {
+func registerSassLoadHandler(opts *Options, build *api.PluginBuild) {
 	build.OnLoad(api.OnLoadOptions{Filter: `\.s[ac]ss$`, Namespace: "sass-loader"}, func(args api.OnLoadArgs) (api.OnLoadResult, error) {
 		// Step 1: Read the Sass source content (with optional preprocessing)
 		source, err := readSassSource(args, opts, build)
@@ -96,7 +96,7 @@ func registerSassLoadHandler(opts *options, build *api.PluginBuild) {
 // If any Sass load processor is registered, it will be executed first to allow
 // custom content transformation or dynamic content generation.
 // If no processor returns content, the file will be read from disk.
-func readSassSource(args api.OnLoadArgs, opts *options, build *api.PluginBuild) (string, error) {
+func readSassSource(args api.OnLoadArgs, opts *Options, build *api.PluginBuild) (string, error) {
 	// Execute Sass load processor chain if present
 	// This allows for custom preprocessing, content injection, or dynamic imports
 	if len(opts.onSassLoadProcessors) > 0 {

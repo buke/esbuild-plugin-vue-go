@@ -55,7 +55,7 @@ type OnDisposeProcessor func(buildOptions *api.BuildOptions)
 // Receives the HTML document node, BuildResult, plugin options, and PluginBuild context.
 // Can modify the HTML DOM, inject scripts/styles, or perform other HTML transformations.
 // Returns an error if the processing fails.
-type IndexHtmlProcessor func(doc *html.Node, result *api.BuildResult, opts *options, build *api.PluginBuild) error
+type IndexHtmlProcessor func(doc *html.Node, result *api.BuildResult, opts *Options, build *api.PluginBuild) error
 
 // IndexHtmlOptions holds configuration options for HTML file processing.
 // Used to configure how HTML files are processed and transformed during the build.
@@ -69,7 +69,7 @@ type IndexHtmlOptions struct {
 // options holds all plugin configuration and processor chains.
 // This is the internal configuration structure used by the plugin to manage
 // all settings, compiler options, and processor chains.
-type options struct {
+type Options struct {
 	name                     string           // Plugin name for identification
 	templateCompilerOptions  map[string]any   // Vue template compiler configuration
 	stylePreprocessorOptions map[string]any   // Style preprocessor configuration (Sass, Less, etc.)
@@ -89,12 +89,12 @@ type options struct {
 
 // OptionFunc is a function type for configuring plugin options using the functional options pattern.
 // Each option function receives the options struct and modifies it to customize plugin behavior.
-type OptionFunc func(*options)
+type OptionFunc func(*Options)
 
 // newOptions creates a new options struct with sensible default values.
 // Initializes empty maps for compiler options and sets up default logger.
-func newOptions() *options {
-	return &options{
+func newOptions() *Options {
+	return &Options{
 		name:                     "vue-plugin",         // Default plugin name
 		templateCompilerOptions:  make(map[string]any), // Empty template options
 		stylePreprocessorOptions: make(map[string]any), // Empty style options
@@ -105,7 +105,7 @@ func newOptions() *options {
 // WithName sets a custom plugin name for identification in esbuild logs and error messages.
 // Useful when running multiple instances of the plugin with different configurations.
 func WithName(name string) OptionFunc {
-	return func(opts *options) {
+	return func(opts *Options) {
 		opts.name = name
 	}
 }
@@ -116,7 +116,7 @@ func WithName(name string) OptionFunc {
 // - compilerOptions: object - Vue compiler specific options
 // - transformAssetUrls: object - Asset URL transformation rules
 func WithTemplateCompilerOptions(templateCompilerOptions map[string]any) OptionFunc {
-	return func(opts *options) {
+	return func(opts *Options) {
 		opts.templateCompilerOptions = templateCompilerOptions
 	}
 }
@@ -127,7 +127,7 @@ func WithTemplateCompilerOptions(templateCompilerOptions map[string]any) OptionF
 // - outputStyle: string - CSS output style (expanded, compressed, etc.)
 // - sourceMap: boolean - Generate source maps for styles
 func WithStylePreprocessorOptions(stylePreprocessorOptions map[string]any) OptionFunc {
-	return func(opts *options) {
+	return func(opts *Options) {
 		opts.stylePreprocessorOptions = stylePreprocessorOptions
 	}
 }
@@ -135,7 +135,7 @@ func WithStylePreprocessorOptions(stylePreprocessorOptions map[string]any) Optio
 // WithIndexHtmlOptions sets the HTML processing options.
 // Configures how HTML files are processed, including source/output paths and custom processors.
 func WithIndexHtmlOptions(indexHtmlOptions IndexHtmlOptions) OptionFunc {
-	return func(opts *options) {
+	return func(opts *Options) {
 		opts.indexHtmlOptions = indexHtmlOptions
 	}
 }
@@ -144,7 +144,7 @@ func WithIndexHtmlOptions(indexHtmlOptions IndexHtmlOptions) OptionFunc {
 // Start processors are executed before the build begins and can perform setup tasks,
 // validation, or environment preparation.
 func WithOnStartProcessor(processor OnStartProcessor) OptionFunc {
-	return func(opts *options) {
+	return func(opts *Options) {
 		opts.onStartProcessors = append(opts.onStartProcessors, processor)
 	}
 }
@@ -153,7 +153,7 @@ func WithOnStartProcessor(processor OnStartProcessor) OptionFunc {
 // Resolve processors can customize how Vue file imports are resolved,
 // enabling custom path mapping, virtual modules, or dynamic resolution logic.
 func WithOnVueResolveProcessor(processor OnVueResolveProcessor) OptionFunc {
-	return func(opts *options) {
+	return func(opts *Options) {
 		opts.onVueResolveProcessors = append(opts.onVueResolveProcessors, processor)
 	}
 }
@@ -162,7 +162,7 @@ func WithOnVueResolveProcessor(processor OnVueResolveProcessor) OptionFunc {
 // Load processors can transform Vue file content before compilation,
 // enabling preprocessing, content injection, or dynamic code generation.
 func WithOnVueLoadProcessor(processor OnVueLoadProcessor) OptionFunc {
-	return func(opts *options) {
+	return func(opts *Options) {
 		opts.onVueLoadProcessors = append(opts.onVueLoadProcessors, processor)
 	}
 }
@@ -171,7 +171,7 @@ func WithOnVueLoadProcessor(processor OnVueLoadProcessor) OptionFunc {
 // Sass load processors can provide custom content for Sass files,
 // enabling dynamic imports, content generation, or preprocessing.
 func WithOnSassLoadProcessor(processor OnSassLoadProcessor) OptionFunc {
-	return func(opts *options) {
+	return func(opts *Options) {
 		opts.onSassLoadProcessors = append(opts.onSassLoadProcessors, processor)
 	}
 }
@@ -180,7 +180,7 @@ func WithOnSassLoadProcessor(processor OnSassLoadProcessor) OptionFunc {
 // End processors are executed after the build completes and can perform post-processing,
 // file copying, asset manipulation, or build result analysis.
 func WithOnEndProcessor(processor OnEndProcessor) OptionFunc {
-	return func(opts *options) {
+	return func(opts *Options) {
 		opts.onEndProcessors = append(opts.onEndProcessors, processor)
 	}
 }
@@ -189,7 +189,7 @@ func WithOnEndProcessor(processor OnEndProcessor) OptionFunc {
 // Dispose processors are executed during cleanup and should handle resource cleanup,
 // temporary file removal, or connection closure.
 func WithOnDisposeProcessor(processor OnDisposeProcessor) OptionFunc {
-	return func(opts *options) {
+	return func(opts *Options) {
 		opts.onDisposeProcessors = append(opts.onDisposeProcessors, processor)
 	}
 }
@@ -198,7 +198,7 @@ func WithOnDisposeProcessor(processor OnDisposeProcessor) OptionFunc {
 // The JS executor is required and handles communication with the Vue compiler running in a JavaScript context.
 // It's used for compiling Vue Single File Components and processing style files.
 func WithJsExecutor(jsExecutor *jsexecutor.JsExecutor) OptionFunc {
-	return func(opts *options) {
+	return func(opts *Options) {
 		opts.jsExecutor = jsExecutor
 	}
 }
@@ -207,7 +207,7 @@ func WithJsExecutor(jsExecutor *jsexecutor.JsExecutor) OptionFunc {
 // The logger is used for debug information, warnings, and error messages throughout the plugin.
 // Defaults to slog.Default() if not specified.
 func WithLogger(logger *slog.Logger) OptionFunc {
-	return func(opts *options) {
+	return func(opts *Options) {
 		opts.logger = logger
 	}
 }
